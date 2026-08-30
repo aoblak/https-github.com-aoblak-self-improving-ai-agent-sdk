@@ -43,6 +43,18 @@ Implemented on branch `hardening/oci-a1-production-baseline` before promotion to
 - `deploy.sh`: pre-deploy backup, pull/build, promotion verification and automatic restore path on failure.
 - `oci-instance-principal-check.py`: validates OCI SDK authentication through instance principals, avoiding a long-lived API private key on the VM.
 - GitHub Actions validation gate: shell syntax, Python syntax, Compose model and basic committed-secret detection.
+- Fixed Compose volume naming so backup/restore targets the actual persistent volumes deterministically.
+- Fixed rollback path so a custom `BACKUP_ROOT` is honored by deploy and restore.
+- Added `GOVERNANCE.md` as the permanent OOS/AI Agenti change protocol.
+
+### Permanent governance rule
+From this point forward, material OOS/AI Agenti work follows:
+
+**Inspect → reconcile → correct → test → journal → Git → verify.**
+
+This means every substantial change must first inspect current implementation and earlier decisions, reconcile the change with OOS architecture and other project components, correct contradictions or duplication before adding more code, test normal and failure paths, update the Master Journal and Git in the same change set, and verify the resulting state before promotion.
+
+A reusable component belongs in shared OOS only if it is part of the trust/policy/provenance/routing kernel or is demonstrably reusable by at least two project verticals without duplicating most of the implementation. Otherwise it remains project-specific or a provider adapter.
 
 ### Backup / rollback philosophy
 A backup that has never been restored is not considered proven. Restore testing is part of acceptance. Persistent state is backed up before deployment. Failed deployment triggers recovery of the last backed-up state and verification. Forensic evidence/logs should be preserved before destructive repair when a security incident is suspected.
@@ -63,6 +75,8 @@ Critical data stores and secrets remain outside the unrestricted agent execution
 ### Correction log
 - Previous `zero-agent-installer.zip` targeted AppDynamics Zero Agent. It is deprecated for this project.
 - Correct project component is **Agent Zero AI framework** (`agent0ai/agent-zero`).
+- Backup/restore initially assumed literal Docker volume names while Compose could prefix them; fixed by explicit volume names.
+- Rollback initially hard-coded `/var/backups/ai-agents/latest`; fixed to honor `BACKUP_ROOT`.
 
 ### Acceptance gate before production
 1. GitHub validation workflow green.
