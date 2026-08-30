@@ -89,3 +89,44 @@ Critical data stores and secrets remain outside the unrestricted agent execution
 8. Failed-deploy simulation successfully returns to a verified state.
 9. Logs are sufficient for reconstruction/forensics.
 10. Only then promote branch to `main`.
+
+## 2026-08-30 — GitHub portfolio consolidation
+
+### Decision
+GitHub account is being reorganized around one coherent public narrative: **OOS as the flagship trustworthy AI operating layer, with a small number of real-world verticals proving it in practice**.
+
+A complete repository classification and migration map is recorded in `docs/GITHUB_PORTFOLIO_AUDIT.md`.
+
+### Public-profile target
+Preferred future public repositories:
+- `oos` — flagship trusted AI operating layer;
+- `nera` — First Dog OS / OOS vertical;
+- `aljosa-oblak` — personal/business ecosystem landing page;
+- `arcanina` — public-safe service/content vertical;
+- `chc` — public architecture/demo layer when mature enough;
+- one independently useful developer tool extracted from the AI-agent work, only if it meets the public admission gate.
+
+A future `aoblak/aoblak` repository will host the GitHub profile README.
+
+### Consolidation decisions
+- Current `https-github.com-aoblak-self-improving-ai-agent-sdk` is **not deleted**; it is the present OOS source and is to be renamed/migrated to `oos` after the current hardening branch passes acceptance.
+- `Turbo-AI-Agent-SDK`, `Turbo-AI-Agent`, `ai-agent-web`, `browser-use`, `browser`, video-agent and content-studio experiments are sources to inspect and merge into OOS capabilities/providers where differentiated code exists.
+- `thedogparkfinder` and `thedogfinder_site` are to be reconciled into NERA.
+- Dunja/OnlineTravels/PremanturaRent repositories remain private and serve operational or CHC historical/forensic purposes.
+- Client work remains private.
+- Generic tutorials/templates and upstream duplicates are removed from the public identity after history/ownership checks.
+
+### Public identity cleanup findings
+- `recon-skills` README points to `uphiago/recon-skills` and `hiago.sh`; it must not be presented as an aoblak flagship.
+- `hyperframes` README identifies the HeyGen HyperFrames project and uses `heygen-com/hyperframes`; it must not be presented as an aoblak flagship.
+- `github-slideshow`, generic `Next.js`, Netlify feature-tour variants, `runner`, `navidrome` and similar repositories have no place in the intended public narrative unless a history audit proves substantial original work worth preserving.
+
+### Destructive-action rule
+For GitHub cleanup, the permanent sequence is:
+
+**private first → inspect history → extract original code → verify replacement → journal → delete/archive only when proven safe.**
+
+Deletion is never the first operation.
+
+### Current tooling boundary
+The connected GitHub integration confirms admin permission on the repositories but does not currently expose repository-settings mutations for visibility, repository rename, archive/delete of a whole repository, new repository creation or profile pin configuration. Until those operations are exposed, Git-side preparation, auditing, code migration, branches, files, PRs and documentation can be performed, while final account-level cleanup remains pending.
