@@ -59,4 +59,6 @@ networks:
 
 volumes:
   agent_zero_usr:
+    name: agent_zero_usr
   hermes_home:
+    name: hermes_home
