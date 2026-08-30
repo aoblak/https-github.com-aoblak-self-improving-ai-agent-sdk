@@ -9,55 +9,69 @@ Canonical architecture decision. Supersedes the earlier mistaken interpretation 
 - **Hermes Agent**: persistent self-improving agent / reasoning and learning layer.
 - **Agent Zero** (`agent0ai/agent-zero`): isolated execution/tool worker running in Docker; not the root controller and not a source of truth.
 - **OCI CLI + OCI Python SDK**: infrastructure automation/control layer for Oracle Cloud Infrastructure.
-- **Oracle Cloud Always Free Ampere A1 node**: deployment target sized to the current Always Free tenancy budget of **2 OCPU / 12 GB RAM total**.
+- **Oracle Cloud Always Free Ampere A1 node**: deployment target sized to **2 OCPU / 12 GB RAM total** for this tenancy plan.
 - **GitHub**: versioned source for architecture, installers, runbooks and journal changes. Secrets never go into Git.
 
-### Oracle Always Free operating constraint
-Current Oracle documentation for Always Free A1 tenancies states a total budget equivalent to 2 OCPU and 12 GB RAM. Idle Always Free compute may be reclaimed when, over a 7-day period, CPU, network and (for A1) memory utilization remain below Oracle's stated thresholds. We will not create artificial/busy-loop load merely to defeat reclaim logic; the node must have legitimate scheduled work, monitoring, backups, agent jobs and health checks.
+### Operating constraint
+The node must perform legitimate work. No artificial CPU/network/memory burn is introduced to defeat provider idle/reclaim rules. Monitoring, backup, indexing, maintenance and actual agent jobs are legitimate workloads.
 
-### Recommended deployment role
-The OCI A1 node is a lightweight always-on control/worker node, not the sole data authority.
-
-Suggested allocation:
-- Host OS: Ubuntu/Oracle Linux ARM64
-- Docker + Compose
-- Hermes Agent as persistent orchestration/learning service
-- Agent Zero as sandboxed subordinate execution service
-- OCI CLI/SDK for provisioning, inventory, snapshots/backups, monitoring and deployment automation
-- Reverse proxy only where needed
-- Centralized logs + health checks
-- Persistent application data on mounted storage with backups
+### Resource baseline
+- Agent Zero: 0.75 CPU / 4 GB hard limit.
+- Hermes: 1 CPU / 5 GB hard limit.
+- Remaining capacity reserved for host OS, Docker, OCI tooling, monitoring and recovery.
 
 ### Security and reliability rules
 1. Least privilege for OCI IAM and local service users.
-2. No unrestricted production access for Hermes or Agent Zero.
-3. Agent Zero runs isolated in Docker with explicit mounts, networks and capabilities.
-4. Secrets live outside Git (environment injection / OCI Vault or equivalent).
-5. Database/source-of-truth remains logically separated from execution agents.
-6. Every deployment must be reconstructable from Git + documented secrets/config restore procedure.
-7. Backup, rollback and forensic recovery are first-class requirements; RPO should be as close to zero as practical for critical state.
-8. Changes are tested before promotion; health checks and rollback are mandatory.
-9. Install/deploy scripts should be idempotent.
-10. No fake keep-alive CPU burn. Legitimate monitoring, backups, indexing, scheduled agent tasks and maintenance provide real utilization.
+2. Prefer OCI **instance principals + dynamic groups + scoped IAM policy** over persistent API private keys on the VM.
+3. No unrestricted production access for Hermes or Agent Zero.
+4. Agent Zero is isolated in Docker, drops Linux capabilities, uses no-new-privileges, and binds only to localhost unless an authenticated gateway/VPN is explicitly added.
+5. Secrets live outside Git.
+6. Database/source-of-truth remains logically separated from execution agents.
+7. Every deployment must be reconstructable from Git + documented secret/config restore procedure.
+8. Backup, rollback and forensic recovery are first-class requirements; RPO should be as close to zero as practical for critical state.
+9. Changes are validated before promotion; health checks and rollback are mandatory.
+10. Install/deploy scripts are designed to be idempotent.
+
+### 2026-08-30 production-hardening implementation
+Implemented on branch `hardening/oci-a1-production-baseline` before promotion to `main`:
+
+- Docker health checks for Agent Zero and Hermes.
+- Bounded Docker JSON log rotation.
+- `backup.sh`: timestamped persistent-volume archives plus SHA-256 manifest.
+- `restore.sh`: checksum verification, deterministic volume restore, restart and post-restore verification.
+- `verify.sh`: Compose validation, service-state checks and localhost Agent Zero probe.
+- `deploy.sh`: pre-deploy backup, pull/build, promotion verification and automatic restore path on failure.
+- `oci-instance-principal-check.py`: validates OCI SDK authentication through instance principals, avoiding a long-lived API private key on the VM.
+- GitHub Actions validation gate: shell syntax, Python syntax, Compose model and basic committed-secret detection.
+
+### Backup / rollback philosophy
+A backup that has never been restored is not considered proven. Restore testing is part of acceptance. Persistent state is backed up before deployment. Failed deployment triggers recovery of the last backed-up state and verification. Forensic evidence/logs should be preserved before destructive repair when a security incident is suspected.
+
+### GitHub deployment policy
+GitHub is the versioned source of truth, but GitHub Actions does **not** receive broad OCI tenancy credentials. Validation runs in GitHub. Production deployment should execute on the OCI node or a tightly scoped runner using OCI instance-principal permissions. Promotion to `main` occurs only after validation of the hardening branch.
 
 ### Integration model
 Human / ChatGPT control plane
 → GitHub versioned configuration
 → OCI CLI/SDK infrastructure automation
-→ Hermes Agent (persistent agent / learning)
+→ Hermes Agent (persistent reasoning/learning)
 → Agent Zero (isolated execution worker)
 → approved external services/tools
 
-Critical data stores and secrets are outside the unrestricted agent execution path.
+Critical data stores and secrets remain outside the unrestricted agent execution path.
 
 ### Correction log
-- Previous generated package named `zero-agent-installer.zip` targeted AppDynamics Zero Agent. That package is **deprecated for this project** and must not be considered canonical.
+- Previous `zero-agent-installer.zip` targeted AppDynamics Zero Agent. It is deprecated for this project.
 - Correct project component is **Agent Zero AI framework** (`agent0ai/agent-zero`).
 
-### Next implementation baseline
-- ARM64-compatible Docker deployment.
-- Hermes and Agent Zero separated into distinct containers/services.
-- Explicit resource limits so 2 OCPU / 12 GB remains stable.
-- OCI CLI installed on host/control container; OCI Python SDK in a dedicated virtual environment or automation container.
-- GitHub Actions used only where secrets/permissions can be scoped safely.
-- Add restore test, health check and deployment verification before production use.
+### Acceptance gate before production
+1. GitHub validation workflow green.
+2. `docker compose config -q` passes on ARM64 node.
+3. Both services start within assigned 2 OCPU / 12 GB envelope.
+4. Agent Zero remains localhost-only unless protected gateway is deliberately configured.
+5. Instance-principal check passes with only the minimum OCI IAM policy required.
+6. Backup is created and SHA-256 verification passes.
+7. Restore test succeeds on disposable/test state.
+8. Failed-deploy simulation successfully returns to a verified state.
+9. Logs are sufficient for reconstruction/forensics.
+10. Only then promote branch to `main`.
