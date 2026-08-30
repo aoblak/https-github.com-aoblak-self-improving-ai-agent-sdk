@@ -130,3 +130,29 @@ Deletion is never the first operation.
 
 ### Current tooling boundary
 The connected GitHub integration confirms admin permission on the repositories but does not currently expose repository-settings mutations for visibility, repository rename, archive/delete of a whole repository, new repository creation or profile pin configuration. Until those operations are exposed, Git-side preparation, auditing, code migration, branches, files, PRs and documentation can be performed, while final account-level cleanup remains pending.
+
+## 2026-08-30 — Cursor Developer Plane integration
+
+### Decision
+Cursor is adopted as the **Developer Plane** of OOS/AI Agenti. It is a codebase-aware implementation, refactoring, testing and review surface; it is not another canonical brain and does not replace Hermes, Agent Zero, GitHub governance or OOS policy/provenance.
+
+### Canonical plane model
+- **Control Plane:** human + ChatGPT architecture, coordination and cross-project reasoning.
+- **Developer Plane:** Cursor editor/CLI, isolated Git worktrees, local tests and bounded implementation.
+- **Source/Governance Plane:** GitHub + `GOVERNANCE.md` + `MASTER_JOURNAL.md` + architecture/runbooks.
+- **Agent Plane:** Hermes persistent reasoning/learning + Agent Zero isolated execution worker.
+- **Infrastructure Plane:** OCI CLI/SDK + Oracle A1 runtime.
+- **Data Plane:** databases, backups and secrets outside unrestricted agent paths.
+
+### Cursor integration rules
+- Cursor automatically receives the OOS governance protocol through `.cursor/rules/oos-governance.mdc`.
+- Prefer Ask/Plan before Agent edits for material changes.
+- Prefer Cursor worktrees for isolated implementation.
+- MCP is allowed only for explicitly approved capabilities with least privilege; broad MCP wildcards are not the default.
+- Cursor CLI/headless automation may analyze or modify bounded files, but deterministic workflow steps should own git publishing, releases and production deployment.
+- Cursor does not receive production database/source-of-truth access by default.
+- Shared state between ChatGPT, Cursor, Hermes and Agent Zero flows through versioned Git/OOS interfaces, not undocumented hidden cross-agent memory.
+- ACP is reserved as a possible future OOS-to-Cursor programmatic bridge; it is not required for baseline operation.
+
+### Documentation
+Detailed integration model: `docs/CURSOR_INTEGRATION.md`.
