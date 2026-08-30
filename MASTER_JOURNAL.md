@@ -34,125 +34,93 @@ The node must perform legitimate work. No artificial CPU/network/memory burn is 
 
 ### 2026-08-30 production-hardening implementation
 Implemented on branch `hardening/oci-a1-production-baseline` before promotion to `main`:
-
 - Docker health checks for Agent Zero and Hermes.
 - Bounded Docker JSON log rotation.
 - `backup.sh`: timestamped persistent-volume archives plus SHA-256 manifest.
 - `restore.sh`: checksum verification, deterministic volume restore, restart and post-restore verification.
 - `verify.sh`: Compose validation, service-state checks and localhost Agent Zero probe.
 - `deploy.sh`: pre-deploy backup, pull/build, promotion verification and automatic restore path on failure.
-- `oci-instance-principal-check.py`: validates OCI SDK authentication through instance principals, avoiding a long-lived API private key on the VM.
-- GitHub Actions validation gate: shell syntax, Python syntax, Compose model and basic committed-secret detection.
-- Fixed Compose volume naming so backup/restore targets the actual persistent volumes deterministically.
-- Fixed rollback path so a custom `BACKUP_ROOT` is honored by deploy and restore.
-- Added `GOVERNANCE.md` as the permanent OOS/AI Agenti change protocol.
+- `oci-instance-principal-check.py`: validates OCI SDK authentication through instance principals.
+- GitHub Actions validation gate.
+- Fixed deterministic Compose volume naming and `BACKUP_ROOT` rollback path.
+- Added `GOVERNANCE.md`.
 
 ### Permanent governance rule
-From this point forward, material OOS/AI Agenti work follows:
-
 **Inspect → reconcile → correct → test → journal → Git → verify.**
-
-This means every substantial change must first inspect current implementation and earlier decisions, reconcile the change with OOS architecture and other project components, correct contradictions or duplication before adding more code, test normal and failure paths, update the Master Journal and Git in the same change set, and verify the resulting state before promotion.
 
 A reusable component belongs in shared OOS only if it is part of the trust/policy/provenance/routing kernel or is demonstrably reusable by at least two project verticals without duplicating most of the implementation. Otherwise it remains project-specific or a provider adapter.
 
 ### Backup / rollback philosophy
-A backup that has never been restored is not considered proven. Restore testing is part of acceptance. Persistent state is backed up before deployment. Failed deployment triggers recovery of the last backed-up state and verification. Forensic evidence/logs should be preserved before destructive repair when a security incident is suspected.
+A backup that has never been restored is not considered proven. Restore testing is part of acceptance. Unknown external effects are never replayed blindly.
 
 ### GitHub deployment policy
-GitHub is the versioned source of truth, but GitHub Actions does **not** receive broad OCI tenancy credentials. Validation runs in GitHub. Production deployment should execute on the OCI node or a tightly scoped runner using OCI instance-principal permissions. Promotion to `main` occurs only after validation of the hardening branch.
+GitHub is the versioned source of truth, but GitHub Actions does **not** receive broad OCI tenancy credentials. Production deployment should execute on the OCI node or a tightly scoped runner using OCI instance-principal permissions.
 
 ### Integration model
-Human / ChatGPT control plane
-→ GitHub versioned configuration
-→ OCI CLI/SDK infrastructure automation
-→ Hermes Agent (persistent reasoning/learning)
-→ Agent Zero (isolated execution worker)
-→ approved external services/tools
-
-Critical data stores and secrets remain outside the unrestricted agent execution path.
+Human / ChatGPT control plane → GitHub → OCI CLI/SDK → Hermes → Agent Zero → approved services/tools. Critical data stores and secrets remain outside unrestricted agent execution.
 
 ### Correction log
-- Previous `zero-agent-installer.zip` targeted AppDynamics Zero Agent. It is deprecated for this project.
-- Correct project component is **Agent Zero AI framework** (`agent0ai/agent-zero`).
-- Backup/restore initially assumed literal Docker volume names while Compose could prefix them; fixed by explicit volume names.
-- Rollback initially hard-coded `/var/backups/ai-agents/latest`; fixed to honor `BACKUP_ROOT`.
+- Previous `zero-agent-installer.zip` targeted AppDynamics Zero Agent; deprecated.
+- Correct component is Agent Zero AI framework.
+- Compose volume naming and rollback path defects corrected.
 
 ### Acceptance gate before production
-1. GitHub validation workflow green.
-2. `docker compose config -q` passes on ARM64 node.
-3. Both services start within assigned 2 OCPU / 12 GB envelope.
-4. Agent Zero remains localhost-only unless protected gateway is deliberately configured.
-5. Instance-principal check passes with only the minimum OCI IAM policy required.
-6. Backup is created and SHA-256 verification passes.
-7. Restore test succeeds on disposable/test state.
-8. Failed-deploy simulation successfully returns to a verified state.
-9. Logs are sufficient for reconstruction/forensics.
-10. Only then promote branch to `main`.
+CI green; ARM64 Compose passes; services fit resource envelope; localhost-only worker; minimum IAM; backup/checksum; restore test; failed-deploy recovery; sufficient forensic logs; then promotion.
 
 ## 2026-08-30 — GitHub portfolio consolidation
 
-### Decision
-GitHub account is being reorganized around one coherent public narrative: **OOS as the flagship trustworthy AI operating layer, with a small number of real-world verticals proving it in practice**.
+GitHub account is being reorganized around **OOS as flagship trustworthy AI operating layer with a small number of real-world verticals proving it**. Canonical audit: `docs/GITHUB_PORTFOLIO_AUDIT.md`.
 
-A complete repository classification and migration map is recorded in `docs/GITHUB_PORTFOLIO_AUDIT.md`.
+Preferred future public repos: `oos`, `nera`, `aljosa-oblak`, public-safe `arcanina`, later `chc`, and at most one independently useful developer tool.
 
-### Public-profile target
-Preferred future public repositories:
-- `oos` — flagship trusted AI operating layer;
-- `nera` — First Dog OS / OOS vertical;
-- `aljosa-oblak` — personal/business ecosystem landing page;
-- `arcanina` — public-safe service/content vertical;
-- `chc` — public architecture/demo layer when mature enough;
-- one independently useful developer tool extracted from the AI-agent work, only if it meets the public admission gate.
+Current OOS source repo is retained until hardening acceptance. AI-agent/browser/content experiments are forensic sources for reusable OOS components. Dog-finder repos reconcile into NERA. Dunja/OnlineTravels/PremanturaRent and client work remain private. Upstream/template repos are removed from public identity after history checks.
 
-A future `aoblak/aoblak` repository will host the GitHub profile README.
-
-### Consolidation decisions
-- Current `https-github.com-aoblak-self-improving-ai-agent-sdk` is **not deleted**; it is the present OOS source and is to be renamed/migrated to `oos` after the current hardening branch passes acceptance.
-- `Turbo-AI-Agent-SDK`, `Turbo-AI-Agent`, `ai-agent-web`, `browser-use`, `browser`, video-agent and content-studio experiments are sources to inspect and merge into OOS capabilities/providers where differentiated code exists.
-- `thedogparkfinder` and `thedogfinder_site` are to be reconciled into NERA.
-- Dunja/OnlineTravels/PremanturaRent repositories remain private and serve operational or CHC historical/forensic purposes.
-- Client work remains private.
-- Generic tutorials/templates and upstream duplicates are removed from the public identity after history/ownership checks.
-
-### Public identity cleanup findings
-- `recon-skills` README points to `uphiago/recon-skills` and `hiago.sh`; it must not be presented as an aoblak flagship.
-- `hyperframes` README identifies the HeyGen HyperFrames project and uses `heygen-com/hyperframes`; it must not be presented as an aoblak flagship.
-- `github-slideshow`, generic `Next.js`, Netlify feature-tour variants, `runner`, `navidrome` and similar repositories have no place in the intended public narrative unless a history audit proves substantial original work worth preserving.
-
-### Destructive-action rule
-For GitHub cleanup, the permanent sequence is:
-
-**private first → inspect history → extract original code → verify replacement → journal → delete/archive only when proven safe.**
-
-Deletion is never the first operation.
-
-### Current tooling boundary
-The connected GitHub integration confirms admin permission on the repositories but does not currently expose repository-settings mutations for visibility, repository rename, archive/delete of a whole repository, new repository creation or profile pin configuration. Until those operations are exposed, Git-side preparation, auditing, code migration, branches, files, PRs and documentation can be performed, while final account-level cleanup remains pending.
+Permanent cleanup sequence: **private first → inspect history → extract original code → verify replacement → journal → delete/archive only when proven safe.**
 
 ## 2026-08-30 — Cursor Developer Plane integration
 
-### Decision
-Cursor is adopted as the **Developer Plane** of OOS/AI Agenti. It is a codebase-aware implementation, refactoring, testing and review surface; it is not another canonical brain and does not replace Hermes, Agent Zero, GitHub governance or OOS policy/provenance.
+Cursor is adopted as the **Developer Plane**. It is a codebase-aware implementation/refactoring/testing surface, not another canonical brain.
 
-### Canonical plane model
-- **Control Plane:** human + ChatGPT architecture, coordination and cross-project reasoning.
-- **Developer Plane:** Cursor editor/CLI, isolated Git worktrees, local tests and bounded implementation.
-- **Source/Governance Plane:** GitHub + `GOVERNANCE.md` + `MASTER_JOURNAL.md` + architecture/runbooks.
-- **Agent Plane:** Hermes persistent reasoning/learning + Agent Zero isolated execution worker.
-- **Infrastructure Plane:** OCI CLI/SDK + Oracle A1 runtime.
-- **Data Plane:** databases, backups and secrets outside unrestricted agent paths.
+Canonical planes:
+- Control: human + ChatGPT.
+- Developer: Cursor + local tests/worktrees.
+- Source/Governance: GitHub + governance/journal/docs.
+- Agent: Hermes + Agent Zero.
+- Infrastructure: OCI.
+- Data: DB/backups/secrets outside unrestricted agents.
 
-### Cursor integration rules
-- Cursor automatically receives the OOS governance protocol through `.cursor/rules/oos-governance.mdc`.
-- Prefer Ask/Plan before Agent edits for material changes.
-- Prefer Cursor worktrees for isolated implementation.
-- MCP is allowed only for explicitly approved capabilities with least privilege; broad MCP wildcards are not the default.
-- Cursor CLI/headless automation may analyze or modify bounded files, but deterministic workflow steps should own git publishing, releases and production deployment.
-- Cursor does not receive production database/source-of-truth access by default.
-- Shared state between ChatGPT, Cursor, Hermes and Agent Zero flows through versioned Git/OOS interfaces, not undocumented hidden cross-agent memory.
-- ACP is reserved as a possible future OOS-to-Cursor programmatic bridge; it is not required for baseline operation.
+Cursor receives governance via `.cursor/rules/oos-governance.mdc`; least-privilege MCP only; production publishing/deployment remains deterministic; no production DB access by default. Detailed model: `docs/CURSOR_INTEGRATION.md`.
 
-### Documentation
-Detailed integration model: `docs/CURSOR_INTEGRATION.md`.
+## 2026-08-30 — OOS competitive benchmark and strategic correction
+
+### Finding
+A current-market comparison found that OOS overlaps with several mature agent/runtime projects. The closest benchmark is **Dapr Agents v1.0**, with Microsoft Agent Framework durable workflows, OpenAI Agents SDK, Google ADK/Agents CLI and Temporal covering major adjacent capabilities.
+
+### Important correction
+OOS must **not** attempt to rebuild a complete Dapr/Temporal/ADK/OpenAI-style agent framework. Those systems can become replaceable substrates/providers beneath OOS. OOS should remain a thin provider-neutral **trust and control plane**.
+
+### Where OOS is differentiated
+- explicit 0–4 risk/authority model;
+- human sovereignty and hard legal/physical/safety boundary;
+- Edge Gate / Hidden Brain / Simulator / Execution / Data separation;
+- destructive qualification and evidence-before-acceptance philosophy;
+- unknown external effects are not blindly replayed;
+- restore/forensics/rollback are acceptance concerns rather than afterthoughts;
+- cross-provider and cross-vertical policy/provenance model.
+
+These advantages are currently architectural claims, not production-proven advantages.
+
+### Where OOS is behind
+Production competitors already have durable workflow execution, checkpoint/recovery, identity, state stores, tracing/metrics, evals, MCP/A2A interoperability, sandboxing, developer CLIs, scale, polished SDKs and operational ecosystems. Dapr additionally exposes cryptographic agent identity and signed/verifiable workflow histories.
+
+### New implementation priorities
+P0: Durable Task Ledger; idempotency/external-effect semantics; executable PolicyEngine/CapabilityGuard; cryptographically task-bound approvals; tamper-evident provenance; provider contract/conformance suite.
+
+P1: OpenTelemetry; versioned Task Envelope; machine-readable Project/Capability/Provider Registry; failure-injection Simulator; workload identity/secret broker; MCP then A2A adapters.
+
+P2: CLI/5-minute quickstart; eval datasets; operator UI; HA/multi-node; public SDK/reference adapters.
+
+### Public maturity rule
+Do not describe OOS as production-ready until a reference demonstration proves: same Task Envelope across >=2 providers; risk-3 action blocked without valid approval; safe resume after failure; no duplicate irreversible external effect; tamper detection; controlled provider failure; verified restore; reproducible failure simulation.
+
+Detailed benchmark: `docs/OOS_COMPETITIVE_GAP_2026-08-30.md`.
