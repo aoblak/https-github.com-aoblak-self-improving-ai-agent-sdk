@@ -1,0 +1,40 @@
+services:
+  agent-zero:
+    image: agent0ai/agent-zero:latest
+    container_name: agent-zero
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - agent_zero_usr:/a0/usr
+    mem_limit: 4g
+    cpus: 0.75
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - agents
+
+  hermes:
+    build:
+      context: ./hermes
+    container_name: hermes-agent
+    restart: unless-stopped
+    mem_limit: 5g
+    cpus: 1.0
+    environment:
+      - HERMES_HOME=/home/hermes/.hermes
+    volumes:
+      - hermes_home:/home/hermes/.hermes
+    networks:
+      - agents
+    # Configure provider/API keys at deploy time; do not commit secrets.
+
+networks:
+  agents:
+    driver: bridge
+
+volumes:
+  agent_zero_usr:
+  hermes_home:
