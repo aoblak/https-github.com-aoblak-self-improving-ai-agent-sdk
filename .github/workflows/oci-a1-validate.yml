@@ -1,0 +1,31 @@
+name: OCI A1 Validate
+
+on:
+  push:
+    paths:
+      - 'deploy/oci-a1/**'
+      - '.github/workflows/oci-a1-validate.yml'
+  pull_request:
+    paths:
+      - 'deploy/oci-a1/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate shell syntax
+        run: |
+          bash -n deploy/oci-a1/*.sh
+      - name: Validate Python syntax
+        run: python -m py_compile deploy/oci-a1/oci-instance-principal-check.py
+      - name: Validate Compose model
+        run: docker compose -f deploy/oci-a1/docker-compose.yml config -q
+      - name: Ensure obvious secrets are not committed
+        run: |
+          if grep -RIE '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|access[_-]?key[[:space:]]*=[[:space:]]*[^$])' deploy/oci-a1; then
+            echo 'Potential secret detected'; exit 1
+          fi
