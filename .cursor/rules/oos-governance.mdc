@@ -1,0 +1,32 @@
+---
+description: OOS governance and safe implementation protocol
+alwaysApply: true
+---
+
+# OOS / AI Agenti Cursor Rule
+
+Cursor is the Developer Plane implementation agent. GitHub remains the versioned source of truth. Cursor does not replace the OOS control, policy, provenance, audit, or production execution layers.
+
+Before every material change:
+1. Read `GOVERNANCE.md`, relevant code/configuration, and `MASTER_JOURNAL.md`.
+2. Classify the change as OOS trusted core, shared capability, provider/adapter, infrastructure, or project vertical.
+3. Search for existing implementation and contradictions before creating new code.
+4. Correct unsafe or inconsistent existing implementation before extending it.
+5. Work on a branch/worktree for unproven changes.
+6. Run relevant syntax, unit/integration, security and failure-path tests.
+7. Do not commit secrets, `.env` files, private keys, tokens, production credentials or unrestricted infrastructure access.
+8. Do not bypass policy, approval, provenance, audit, backup, rollback or restore requirements.
+9. Material implementation changes require synchronized documentation and `MASTER_JOURNAL.md` updates.
+10. Do not promote/merge to `main` until the documented acceptance gate passes.
+
+## Permission boundary
+
+Prefer read/search/test/edit operations. Destructive repository, cloud, production, database, secret-management and deployment actions require the dedicated deterministic workflow and applicable approval gate. Do not use broad `gh`, cloud, Docker socket, host filesystem or MCP permissions merely for convenience.
+
+## Reuse rule
+
+Move a component into shared OOS only if it is part of trust/identity/policy/risk/provenance/audit/routing or has demonstrated reuse by at least two project verticals without duplicating most implementation. Otherwise keep it in the project vertical or provider adapter.
+
+Canonical sequence:
+
+**Inspect → reconcile → correct → test → journal → Git → verify.**
